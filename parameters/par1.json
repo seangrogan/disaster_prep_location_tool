@@ -1,0 +1,30 @@
+{
+  "name": "OKLAHOMA",
+  "tornado_db": [
+    "D:/gis_database/usa/NationalWeatherService/1950-2019_actual_tornadoes.csv"
+  ],
+  "road_files": [
+    "D:/gis_database/usa/oklahoma/roads/highways/ODOT_Highways.shp",
+    "D:/gis_database/usa/oklahoma/roads/local/odot_local_roads.shp",
+    "D:/gis_database/usa/oklahoma/roads/major_roadways/odot_roadways.shp"
+  ],
+  "waypoints_file": [
+    "D:/PythonProjects/project-william-2021-06/waypoints/OKLAHOMA_300m_nwpt_145778_random_steiner_zone_20210730_164331.csv"
+  ],
+  "sbws": [
+    "D:/gis_database/usa/oklahoma/SBWs_2000_01_01_to_2020_08_27/SBWs_2000_01_01_to_2020_08_27.shp"
+  ],
+  "lsrs": [
+    "D:/gis_database/usa/oklahoma/LSRs_2000_01_01_to_2020_08_27/LSRs_2000_01_01_to_2020_08_27.shp"
+  ],
+  "fire_stations": [
+    "D:/gis_database/usa/oklahoma/fire_stations/firestations.shp"
+  ],
+  "state_bounds": "D:/gis_database/usa/oklahoma/StateBoundsOK/StateBoundsOK.shp",
+  "crs": "EPSG:26914",
+  "scanning_r": 300,
+  "grid_resolution": 2100,
+  "drone_speed_mps": 22,
+  "endurance_seconds": 28800,
+  "maximum_service_time_hours": 4
+}
