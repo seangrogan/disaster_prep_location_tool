@@ -12,6 +12,10 @@ from routing_algorithm.routing_algo_refresh import cluster_waypoints_with_k_mean
 
 # from routing_algorithm.routing_algorithm import cluster_waypoints, route_waypoints
 
+class TornadoCaseGetterIterator:
+    def __init__(self, dates):
+        self.dates = dates
+
 
 class TornadoCaseGetter:
     def __init__(self, tornadoes, sbws, waypoints):
@@ -39,6 +43,9 @@ class TornadoCaseGetter:
                 route_data=RouteClass(_waypoints)
             )
         self.tornado_events = pd.DataFrame.from_dict(temp_tornado_events, orient='index')
+        self.dates = list(self.dates)
+        self.dates.sort()
+        self.current_date = self.dates[0]
 
     # def atta`ch_a_route_entry(self):
     #     with tqdm(total=len(self.sbw_cases), desc="Attaching RouteClass to SBWs", leave=False) as pbar:
@@ -47,6 +54,20 @@ class TornadoCaseGetter:
     #                 lambda x: self.__FILTER_POINTS(..., x, pbar),
     #                 axis=1,
     #                 result_type='reduce')
+    def __iter__(self):
+        self.current_date_index = 0
+
+        return self
+
+    def __next__(self):
+        if self.current_date_index >= len(self.dates):
+            raise StopIteration
+        curr_date = self.dates[self.current_date_index]
+        self.current_date_index += 1
+        return self.get_specific_event(curr_date)
+
+    def iterator(self):
+        pass
     def get_random_event(self):
         date = random.choice(self.dates)
         event = self.tornado_events.loc[date]

@@ -27,15 +27,19 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
     while stopping_criteria.is_not_complete():
         stopping_criteria.reset_local_counter()
         while stopping_criteria.is_not_complete():
+            for tornado_date, tornado_event in tornado_cases:
+                up_stations = {
+                    key: value for key, value in current_solution.items()
+                    if random.random() > depot_failure
+                }
+                print(f"Date : {tornado_date}")
+                pass
+                # tornado_date, tornado_event = tornado_cases.get_random_event()
+                # routes, t_bar, endurance_check = make_solution(up_stations, tornado_cases, current_solution, pars)
+                # dists, t_bar, _ = update_dists(routes)
+                # result_counter.append(ResultCounter(len(routes), t_bar, tuple(routes.keys())))
+                # fire_station_counter.update(tuple(routes.keys()))
             stopping_criteria.update_counter()
-            up_stations = {
-                key: value for key, value in current_solution.items()
-                if random.random() > depot_failure
-            }
-            routes, t_bar, endurance_check = make_solution(up_stations, tornado_cases, current_solution, pars)
-            dists, t_bar, _ = update_dists(routes)
-            result_counter.append(ResultCounter(len(routes), t_bar, tuple(routes.keys())))
-            fire_station_counter.update(tuple(routes.keys()))
             print('NO PROBLEM HERE')
         print('PROBLEM HERE')
         current_solution = perturb_solution(current_solution, initial_solution,
@@ -188,10 +192,10 @@ def solve_for_depot_count(depot_count, tornado_event, up_stations, max_t_bar, en
     return feasible, routes, t_bar, endurance_check
 
 
-def make_solution(up_stations, tornado_cases, all_stations, pars):
-    tornado_date, tornado_event = tornado_cases.get_random_event()
-    while not (100 < len(tornado_event.waypoints) < 5000):
-        tornado_date, tornado_event = tornado_cases.get_random_event()
+def make_solution(up_stations, tornado_date, tornado_event, all_stations, pars):
+    # tornado_date, tornado_event = tornado_cases.get_random_event()
+    # while not (100 < len(tornado_event.waypoints) < 5000):
+    #     tornado_date, tornado_event = tornado_cases.get_random_event()
     print(f"{tornado_date}, {len(tornado_event.waypoints)}")
 
     endurance = pars['endurance_seconds'] * pars['drone_speed_mps']
