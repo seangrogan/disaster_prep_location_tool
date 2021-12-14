@@ -129,19 +129,20 @@ def construct_path_nearest_insertion_heuristic_v2(dist_matrix, start_min_arc=Tru
         #                     for i, j in
         #                     zip(tour[min(idx_i - 2, 0):min(idx_i + 2, len(tour) - 1)], tour[min(idx_i - 2, 0) + 1:])
         #                     ]
-        change_arc_list = [D_ijk(i, j, k, _d_ijk(i, j, k, dist_matrix))
-                           for k in city_ids for i, j in zip(tour, tour[1:])
-                           ]
+        change_arc_list = [
+            D_ijk(i, j, k, _d_ijk(i, j, k, dist_matrix))
+            for k in city_ids for i, j in zip(tour, tour[1:])
+        ]
         change_arc_list.sort(key=lambda x: x.val)
         if change_arc_list:
             near_insert = change_arc_list.pop(0)
-            _i, _j = tour.index(near_insert.i), tour.index(near_insert.j)
-            while not (near_insert.k in city_ids and #not in tour and
-                       # near_insert.i in tour and
-                       # near_insert.j in tour and
-                       abs(_i - _j) == 1):
+            # _i, _j = tour.index(near_insert.i), tour.index(near_insert.j)
+            while not (near_insert.k in city_ids):  # and #not in tour and
+                # near_insert.i in tour and
+                # near_insert.j in tour and
+                # abs(_i - _j) == 1):
                 near_insert = change_arc_list.pop(0)
-                _i, _j = tour.index(near_insert.i), tour.index(near_insert.j)
+                # _i, _j = tour.index(near_insert.i), tour.index(near_insert.j)
             idx_i = tour.index(near_insert.i)
             tour = tour[:idx_i + 1] + [near_insert.k] + tour[idx_i + 1:]
             city_ids.discard(near_insert.k)

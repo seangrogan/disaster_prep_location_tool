@@ -13,7 +13,7 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
     initial_solution = _convert_df_to_alternative_data_structure(fire_stations)
     best_solution = copy.deepcopy(initial_solution)
     current_solution = copy.deepcopy(best_solution)
-
+    heuristic_pars["local_iter_count"] = 1
     stopping_criteria = StoppingCriteria(heuristic_pars)
 
     depot_failure = pars.get('depot_failure', 0.05)
@@ -32,7 +32,56 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
                 key: value for key, value in current_solution.items()
                 if random.random() > depot_failure
             }
-            routes, dists, t_bar = make_solution(up_stations, tornado_cases, current_solution, pars)
+            routes, t_bar, endurance_check = make_solution(up_stations, tornado_cases, current_solution, pars)
+            dists, t_bar, _ = update_dists(routes)
+            result_counter.append(ResultCounter(len(routes), t_bar, tuple(routes.keys())))
+            fire_station_counter.update(tuple(routes.keys()))
+            print('NO PROBLEM HERE')
+        print('PROBLEM HERE')
+        current_solution = perturb_solution(current_solution, initial_solution,
+                                            fire_station_counter, result_counter, perturbation=None)
+        stopping_criteria.reset_local_counter()
+
+
+def perturb_solution(current_solution, initial_solution,
+                     fire_station_counter, result_counter, perturbation=None):
+    if perturbation is None:
+        perturbations = {
+            "removal_random": 1,
+            'removal_weighted_most_often': 4,
+            'removal_weighted_least_often': 95,
+            'swap_random':20,
+            'add': 1
+        }
+        i, j = zip(*perturbations.items())
+        perturbation = random.choices(i, j, k=1)[-1]
+    if perturbation in {'removal_random'}:
+        rs = current_solution.pop(random.choice(list(current_solution.keys())))
+    if perturbation in {'removal_weighted_most_often'}:
+        rs = None
+        while rs is None:
+            rs = current_solution.pop(random.choice(list(fire_station_counter.elements())), None)
+    if perturbation in {'removal_weighted_least_often'}:
+        _data = fire_station_counter.most_common()
+        _data = [(i, 1.0 / j) for i, j in _data]
+        i, j = zip(*_data)
+        rs = None
+        while rs is None:
+            c = random.choices(i, weights=j)[-1]
+            rs = current_solution.pop(c, None)
+    if perturbation in {'swap_random'}:
+        all_stations = set(initial_solution.keys())
+        current_stations = set(current_solution.keys())
+        if len (all_stations) == len(current_stations):
+            return current_solution
+        to_add = random.choices(list(all_stations.difference(current_stations)))
+        current_solution.pop(random.choice(list(current_solution.keys())))
+        current_solution[to_add] = initial_solution[to_add]
+    if perturbation in {'add'}:
+        to_add = random.choices(list(all_stations.difference(current_stations)))
+        current_solution[to_add] = initial_solution[to_add]
+
+    return current_solution
 
 
 def _convert_df_to_alternative_data_structure(original_df):
@@ -113,40 +162,64 @@ def assign_stations_exact(routes, stations):
 
 
 def update_dists(routes):
-    dists = {key: sum(euclidean(i, j) for i, j in zip(route, route[1:])) for key, route in routes.items() }
+    dists = {key: sum(euclidean(i, j) for i, j in zip(route, route[1:])) for key, route in routes.items()}
     t_bar = max(dists.values())
-    endurance = max(sum(euclidean(i, j) for i, j in zip(route+[route[0]], route[1:]+[route[0]]))
+    endurance = max(sum(euclidean(i, j) for i, j in zip(route + [route[0]], route[1:] + [route[0]]))
                     for route in routes.values())
     return dists, t_bar, endurance
 
 
+def solve_for_depot_count(depot_count, tornado_event, up_stations, max_t_bar, endurance):
+    routes, dists, t_bar = tornado_event.route_data.get_route(depot_count)
+    routes, used_stations = assign_stations_heuristic(routes, up_stations)
+    dists, t_bar, endurance_check = update_dists(routes)
+    feasible = False
+    if t_bar > max_t_bar:
+        # Drones have exceeded the service time
+        print(f"\nExceeds Service Dist ({max_t_bar}) by {(t_bar - max_t_bar):.2f}m -- {depot_count} depots")
+        feasible = False
+    if endurance_check > endurance:
+        # drones cannot complete the journey
+        print(f"\nExceeds Endurance ({endurance}) by {(endurance_check - endurance):.2f}m -- {depot_count} depots")
+        feasible = False
+    if endurance_check <= endurance and t_bar <= max_t_bar:
+        print(f"\nFound Solution with {depot_count}")
+        feasible = True
+    return feasible, routes, t_bar, endurance_check
+
+
 def make_solution(up_stations, tornado_cases, all_stations, pars):
     tornado_date, tornado_event = tornado_cases.get_random_event()
-    while not (50 < len(tornado_event.waypoints) < 2000):
+    while not (100 < len(tornado_event.waypoints) < 5000):
         tornado_date, tornado_event = tornado_cases.get_random_event()
     print(f"{tornado_date}, {len(tornado_event.waypoints)}")
 
     endurance = pars['endurance_seconds'] * pars['drone_speed_mps']
     max_t_bar = pars['maximum_service_time_hours'] * 60 * 60 * pars['drone_speed_mps']
-    depot_up_bound = min(len(up_stations), len(tornado_event.waypoints)//2)+1
+    depot_up_bound = min(len(up_stations), len(tornado_event.waypoints) // 2) + 1
     n_depots_to_check = list(range(1, depot_up_bound))
-    start = int(1 + (pars.get('scanning_r', 300) * len(tornado_event.waypoints))//endurance)
-    n_depots_to_check = n_depots_to_check[start-1:] + n_depots_to_check[start-1::-1] if start < len(n_depots_to_check) else n_depots_to_check
-    for n_depots in n_depots_to_check:
-        routes, dists, t_bar = tornado_event.route_data.get_route(n_depots)
-        routes, used_stations = assign_stations_heuristic(routes, up_stations)
-        dists, t_bar, endurance_check = update_dists(routes)
-        if t_bar > max_t_bar:
-            # Drones have exceeded the service time
-            print(f"\nExceeds Service Dist ({max_t_bar}) by {(t_bar - max_t_bar):.2f}m")
-            continue
-        if endurance_check > endurance:
-            # drones cannot complete the journey
-            print(f"\nExceeds Endurance ({endurance}) by {(endurance_check - endurance):.2f}m")
-            continue
-        if endurance_check <= endurance and t_bar <= max_t_bar:
-            print(f"\nFound Solution with {n_depots}")
-            return routes, t_bar, endurance_check
+    # start = int(1 + (pars.get('scanning_r', 300) * 2 * len(tornado_event.waypoints)) // (endurance))
+    start = max(1, int(len(tornado_event.waypoints) // 200))
+    feasible, routes, t_bar, endurance_check = solve_for_depot_count(
+        start, tornado_event, up_stations, max_t_bar, endurance)
+    if feasible and start == 1:
+        return routes, t_bar, endurance_check
+    if feasible:
+        n_depots_to_check = n_depots_to_check[start - 1::-1]
+        for n_depots in n_depots_to_check:
+            feasible, routes, t_bar, endurance_check = solve_for_depot_count(
+                n_depots, tornado_event, up_stations, max_t_bar, endurance)
+            if not feasible:
+                feasible, routes, t_bar, endurance_check = solve_for_depot_count(
+                    n_depots + 1, tornado_event, up_stations, max_t_bar, endurance)
+                return routes, t_bar, endurance_check
+    else:
+        n_depots_to_check = n_depots_to_check[start - 1:]
+        for n_depots in n_depots_to_check:
+            feasible, routes, t_bar, endurance_check = solve_for_depot_count(
+                n_depots, tornado_event, up_stations, max_t_bar, endurance)
+            if feasible:
+                return routes, t_bar, endurance_check
     routes, dists, t_bar = tornado_event.route_data.get_route(max(n_depots_to_check))
     routes, used_stations = assign_stations_heuristic(routes, up_stations)
     dists, t_bar, endurance_check = update_dists(routes)
