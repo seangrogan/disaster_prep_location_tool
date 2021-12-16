@@ -1,4 +1,5 @@
 import copy
+from datetime import datetime
 import itertools
 import random
 from collections import namedtuple, Counter
@@ -13,7 +14,7 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
     initial_solution = _convert_df_to_alternative_data_structure(fire_stations)
     best_solution = copy.deepcopy(initial_solution)
     current_solution = copy.deepcopy(best_solution)
-    heuristic_pars["local_iter_count"] = 1
+    heuristic_pars["local_iter_count"] = 9999999
     stopping_criteria = StoppingCriteria(heuristic_pars)
 
     depot_failure = pars.get('depot_failure', 0.05)
@@ -23,28 +24,45 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
     fire_station_counter = Counter()
     ResultCounter = namedtuple('ResultCounter', ['n_fire_stations', 't_bar', "fire_station_keys"])
     result_counter = []
-
+    k = 0
+    row = ['kounter', 'n_routes', "t_bar", "n_stations", "n_waypoints"]
+    log_data_to_csv(row)
     while stopping_criteria.is_not_complete():
         stopping_criteria.reset_local_counter()
-        while stopping_criteria.is_not_complete():
-            for tornado_date, tornado_event in tornado_cases:
+        for _tornado_date in tornado_cases.dates:
+            print(f"{_tornado_date}")
+            tornado_date, tornado_event = tornado_cases.get_specific_event(_tornado_date)
+            for _ in range(3):#while stopping_criteria.is_not_complete():
                 up_stations = {
                     key: value for key, value in current_solution.items()
                     if random.random() > depot_failure
                 }
-                print(f"Date : {tornado_date}")
-                pass
+                # print(f"Date : {tornado_date}")
                 # tornado_date, tornado_event = tornado_cases.get_random_event()
-                # routes, t_bar, endurance_check = make_solution(up_stations, tornado_cases, current_solution, pars)
-                # dists, t_bar, _ = update_dists(routes)
-                # result_counter.append(ResultCounter(len(routes), t_bar, tuple(routes.keys())))
-                # fire_station_counter.update(tuple(routes.keys()))
-            stopping_criteria.update_counter()
+                routes, t_bar, endurance_check = make_solution(up_stations,
+                                                               tornado_date, tornado_event, current_solution, pars)
+                dists, t_bar, _ = update_dists(routes)
+                result_counter.append(ResultCounter(len(routes), t_bar, tuple(routes.keys())))
+                fire_station_counter.update(tuple(routes.keys()))
+                stopping_criteria.update_counter()
+                k += 1
+                row = [k, len(routes), t_bar, len(current_solution), len(tornado_event.waypoints)]
+                print(row)
+                log_data_to_csv(row)
             print('NO PROBLEM HERE')
-        print('PROBLEM HERE')
+        print('COMPLETED LOCAL ITERATION HERE')
         current_solution = perturb_solution(current_solution, initial_solution,
                                             fire_station_counter, result_counter, perturbation=None)
         stopping_criteria.reset_local_counter()
+    print('COMPLETED Global ITERATION HERE')
+
+
+def log_data_to_csv(row, filename="prj_william_log", datetime_for_filename=datetime.now().strftime("%Y%m%d_%H%M%S")):
+    filename = f"{filename}_{datetime_for_filename}.csv"
+    with open(filename, 'a', newline='\n') as f:
+        line = ",".join(map(str, row))
+        f.write(line)
+        f.write('\n')
 
 
 def perturb_solution(current_solution, initial_solution,
@@ -54,7 +72,7 @@ def perturb_solution(current_solution, initial_solution,
             "removal_random": 1,
             'removal_weighted_most_often': 4,
             'removal_weighted_least_often': 95,
-            'swap_random':20,
+            'swap_random': 20,
             'add': 1
         }
         i, j = zip(*perturbations.items())
@@ -73,12 +91,12 @@ def perturb_solution(current_solution, initial_solution,
         while rs is None:
             c = random.choices(i, weights=j)[-1]
             rs = current_solution.pop(c, None)
+    all_stations = set(initial_solution.keys())
+    current_stations = set(current_solution.keys())
     if perturbation in {'swap_random'}:
-        all_stations = set(initial_solution.keys())
-        current_stations = set(current_solution.keys())
-        if len (all_stations) == len(current_stations):
+        if len(all_stations) == len(current_stations):
             return current_solution
-        to_add = random.choices(list(all_stations.difference(current_stations)))
+        to_add = random.choice(list(all_stations.difference(current_stations)))
         current_solution.pop(random.choice(list(current_solution.keys())))
         current_solution[to_add] = initial_solution[to_add]
     if perturbation in {'add'}:
