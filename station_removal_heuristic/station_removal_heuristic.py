@@ -32,6 +32,9 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
         for _tornado_date in tornado_cases.dates:
             print(f"{_tornado_date}")
             tornado_date, tornado_event = tornado_cases.get_specific_event(_tornado_date)
+            if len(tornado_event.waypoints) > 5000:
+                print(f"Too many waypoints for testing...")
+                continue
             for _ in range(3):#while stopping_criteria.is_not_complete():
                 up_stations = {
                     key: value for key, value in current_solution.items()
@@ -218,7 +221,7 @@ def make_solution(up_stations, tornado_date, tornado_event, all_stations, pars):
 
     endurance = pars['endurance_seconds'] * pars['drone_speed_mps']
     max_t_bar = pars['maximum_service_time_hours'] * 60 * 60 * pars['drone_speed_mps']
-    depot_up_bound = min(len(up_stations), len(tornado_event.waypoints) // 2) + 1
+    depot_up_bound = max(min(len(up_stations), len(tornado_event.waypoints) // 2) + 1, 100)
     n_depots_to_check = list(range(1, depot_up_bound))
     # start = int(1 + (pars.get('scanning_r', 300) * 2 * len(tornado_event.waypoints)) // (endurance))
     start = max(1, int(len(tornado_event.waypoints) // 200))
