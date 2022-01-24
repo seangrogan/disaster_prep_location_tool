@@ -19,7 +19,9 @@ class TornadoCaseGetterIterator:
 
 class TornadoCaseGetter:
     def __init__(self, tornadoes, sbws, waypoints):
-        self.sbw_cases, self.tor_cases, self.dates = self.__COLLATE_EVENTS(sbws, tornadoes)
+        _sbws = sbws[sbws['PHENOM'] == 'TO']
+        self.sbw_cases, self.tor_cases, self.dates = self.__COLLATE_EVENTS(_sbws, tornadoes)
+        # self.sbw_cases = self.sbw_cases[self.sbw_cases['PHENOM'] == 'TO']
         __temp_waypoints = pd.DataFrame(data=waypoints, index=waypoints, columns=['x', 'y'])
         with tqdm(total=len(self.sbw_cases), desc="Attaching waypoints to SBWs", leave=False) as pbar:
             self.sbw_cases['waypoints'] = \
@@ -68,6 +70,7 @@ class TornadoCaseGetter:
 
     def iterator(self):
         pass
+
     def get_random_event(self):
         date = random.choice(self.dates)
         event = self.tornado_events.loc[date]
@@ -102,10 +105,19 @@ class TornadoCaseGetter:
             _temp_torn = temp_tornado_db[
                 pd.concat([temp_tornado_db.intersects(row.geometry) for idx, row in temp_sbws.iterrows()], axis=1).max(
                     axis=1)]
-            _temp_sbw = temp_sbws[
-                pd.concat([temp_sbws.intersects(row.geometry) for idx, row in temp_tornado_db.iterrows()], axis=1).max(
-                    axis=1)]
-            sbw_cases.append(_temp_sbw)
+            _temp_sbw = []
+            for idx, row in temp_tornado_db.iterrows():
+                __temp = temp_sbws[
+                    pd.concat([temp_sbws.intersects(row.geometry)], axis=1).max(
+                        axis=1)]
+                if len(__temp) > 0:
+                    _temp_sbw.append(__temp)
+            # _temp_sbw = temp_sbws[
+            #     pd.concat([temp_sbws.intersects(row.geometry) for idx, row in temp_tornado_db.iterrows()], axis=1).max(
+            #         axis=1)]
+            if len(_temp_sbw)>0:
+                _temp_sbw = pd.concat(_temp_sbw)
+                sbw_cases.append(_temp_sbw)
             tor_cases.append(_temp_torn)
         _tor_cases = pd.concat(tor_cases)
         _sbw_cases = pd.concat(sbw_cases)
@@ -124,6 +136,14 @@ class TornadoCaseGetter:
         if waypoints:
             return waypoints
         return np.NaN
+
+    def plot_helper(self, date):
+        event = self.tornado_events.loc[date]
+        plt.title(f"Date : {date} | Wpts : {len(event.waypoints)}")
+        x, y = zip(*list(event.waypoints))
+        plt.scatter(x, y)
+        plt.savefig(f"./plots/{date}.png")
+        plt.close()
 
 
 class RouteClass:

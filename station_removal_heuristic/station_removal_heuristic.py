@@ -32,10 +32,10 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
         for _tornado_date in tornado_cases.dates:
             print(f"{_tornado_date}")
             tornado_date, tornado_event = tornado_cases.get_specific_event(_tornado_date)
-            if len(tornado_event.waypoints) > 5000:
-                print(f"Too many waypoints for testing...")
-                continue
-            for _ in range(3):#while stopping_criteria.is_not_complete():
+            # if len(tornado_event.waypoints) > 4000:
+            #     print(f"Too many waypoints for testing...")
+            #     continue
+            for _ in range(3):  # while stopping_criteria.is_not_complete():
                 up_stations = {
                     key: value for key, value in current_solution.items()
                     if random.random() > depot_failure
@@ -62,10 +62,17 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
 
 def log_data_to_csv(row, filename="prj_william_log", datetime_for_filename=datetime.now().strftime("%Y%m%d_%H%M%S")):
     filename = f"{filename}_{datetime_for_filename}.csv"
-    with open(filename, 'a', newline='\n') as f:
-        line = ",".join(map(str, row))
-        f.write(line)
-        f.write('\n')
+    for i in range(100):
+        try:
+            with open(filename, 'a', newline='\n') as f:
+                line = ",".join(map(str, row))
+                f.write(line)
+                f.write('\n')
+            return None
+        except:
+            pass
+    print(f"Failed to write the file 100 times!")
+    assert False
 
 
 def perturb_solution(current_solution, initial_solution,
@@ -103,7 +110,7 @@ def perturb_solution(current_solution, initial_solution,
         current_solution.pop(random.choice(list(current_solution.keys())))
         current_solution[to_add] = initial_solution[to_add]
     if perturbation in {'add'}:
-        to_add = random.choices(list(all_stations.difference(current_stations)))
+        to_add = random.choices(list(all_stations.difference(current_stations)))[0]
         current_solution[to_add] = initial_solution[to_add]
 
     return current_solution

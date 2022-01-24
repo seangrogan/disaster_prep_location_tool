@@ -6,6 +6,8 @@
 
 from collections import Counter, namedtuple
 
+from tqdm import tqdm
+
 from TornadoCaseGetter import TornadoCaseGetter
 from disaster_prep_location_tool import read_data
 from parameters.parfile_reader import parfile_reader
@@ -26,7 +28,8 @@ def main():
     # Creating a class to organize historic tornado events
     # and allows for 'calling' of a random event
     tornado_cases = TornadoCaseGetter(tornado_db, sbws, waypoints)
-
+    # for
+    # e
 
     #%%
 
