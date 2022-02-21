@@ -13,11 +13,6 @@ def read_data(pars, keep_unknown_ends=True):
                                    cols=['ISSUED', 'EXPIRED', 'INIT_ISS', 'INIT_EXP'],
                                    fmt='%Y%m%d%H%M%S')
 
-    # lsrs = _read_geo_files_into_geopandas(pars['lsrs'], pars['crs'])
-    # lsrs = _geopandas_fix_datetime(lsrs,
-    #                                  cols=['VALID'],
-    #                                  fmt='%Y%m%d%H%M%S')
-
     waypoints = pd.read_csv(pars['waypoints_file'][0])
     waypoints = list(tuple(x) for x in waypoints.to_records(index=False))
     tornado_db = read_tornado_file(pars)

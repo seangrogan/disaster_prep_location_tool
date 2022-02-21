@@ -25,7 +25,7 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
     ResultCounter = namedtuple('ResultCounter', ['n_fire_stations', 't_bar', "fire_station_keys"])
     result_counter = []
     k = 0
-    row = ['kounter', 'n_routes', "t_bar", "n_stations", "n_waypoints"]
+    row = ['kounter', 'n_routes', "t_bar", "n_stations", "n_waypoints", "date"]
     log_data_to_csv(row)
     while stopping_criteria.is_not_complete():
         stopping_criteria.reset_local_counter()
@@ -49,7 +49,7 @@ def station_removal_heuristic(fire_stations, waypoints, tornado_cases, pars, heu
                 fire_station_counter.update(tuple(routes.keys()))
                 stopping_criteria.update_counter()
                 k += 1
-                row = [k, len(routes), t_bar, len(current_solution), len(tornado_event.waypoints)]
+                row = [k, len(routes), t_bar, len(current_solution), len(tornado_event.waypoints), str(_tornado_date)]
                 print(row)
                 log_data_to_csv(row)
             print('NO PROBLEM HERE')
@@ -218,6 +218,16 @@ def solve_for_depot_count(depot_count, tornado_event, up_stations, max_t_bar, en
         print(f"\nFound Solution with {depot_count}")
         feasible = True
     return feasible, routes, t_bar, endurance_check
+
+
+def make_solution_v2(up_stations, tornado_date, tornado_event, all_stations, pars):
+    print(f"{tornado_date}, {len(tornado_event.waypoints)}")
+    feasible = False
+    max_feasible = False
+    soln_to_check = list(range(1, len(up_stations)+1))
+    while not feasible and not max_feasible:
+        pass
+
 
 
 def make_solution(up_stations, tornado_date, tornado_event, all_stations, pars):
